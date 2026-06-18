@@ -9,7 +9,10 @@ const app = express();
 
 // Middleware
 // Enable cross-origin requests from the frontend.
-app.use(cors());
+app.use(cors({ 
+  origin: 'https://farming-assistant-frontend-chi.vercel.app',
+ credentials: true
+}));
 
 // Accept JSON bodies. The larger limit supports base64 crop images.
 app.use(express.json({ limit: '10mb' })); 
