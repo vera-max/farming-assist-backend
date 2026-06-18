@@ -1,0 +1,80 @@
+const Farmer = require('../models/Farmer');
+const bcrypt = require('bcryptjs');
+
+// Legacy farmer registration controller.
+// The active app currently registers farmers through routes/farmerRoutes.js.
+exports.registerFarmer = async (req, res) => {
+  console.log('Incoming body:', req.body);
+  try {
+    const { name, email, phone, password, location, role } = req.body;
+
+    // Prevent duplicate accounts with the same email.
+    const existingFarmer = await Farmer.findOne({ email });
+    if (existingFarmer) {
+      return res.status(400).json({ message: 'Farmer already exists' });
+    }
+
+    // Hash the submitted password before saving.
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create the farmer account.
+    const farmer = new Farmer({
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      location,
+      role // ✅ include role
+    });
+
+    await farmer.save();
+    // Send role explicitly so frontend can redirect.
+    
+    res.status(201).json({
+      message: 'Farmer registered successfully',
+      role: farmer.role,   // ✅ return role
+      farmer
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+// Legacy farmer login controller.
+exports.loginFarmer = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find account by email.
+    const farmer = await Farmer.findOne({ email });
+    if (!farmer) {
+      return res.status(400).json({ error: 'Farmer not found' });
+    }
+
+    // Verify the submitted password.
+    const isMatch = await bcrypt.compare(password, farmer.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid credentials' });
+    }
+
+    // Create a role-aware token for the frontend.
+    const jwt = require('jsonwebtoken');
+
+const token = jwt.sign(
+  { id: farmer._id, role: farmer.role },
+  process.env.JWT_SECRET,
+  { expiresIn: '1h' }
+);
+
+res.status(200).json({
+  message: 'Login successful',
+  token,
+  role: farmer.role,
+  farmer
+});
+    
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
