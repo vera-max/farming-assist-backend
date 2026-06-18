@@ -1,9 +1,9 @@
 const app = require('./src/app');
-const {sequelize}= require('./src/config/db');
+const {connectDB}= require('./src/config/db');
 
 const PORT = process.env.PORT || 5000;
 
-sequelize.sync()
+connectDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`AGRILINK backend running on port ${PORT}`);
